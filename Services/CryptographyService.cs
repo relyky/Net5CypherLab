@@ -97,6 +97,9 @@ namespace Net5ConaoleApp.Services
             }
         }
 
+        /// <summary>
+        /// 參考：[Using the AesGcm class](https://stackoverflow.com/questions/60889345/using-the-aesgcm-class)
+        /// </summary>
         public byte[] EncryptData(string key, object data, string associatedData = null)
         {
             // Get bytes of plaintext string
@@ -136,6 +139,9 @@ namespace Net5ConaoleApp.Services
             return encryptedData.ToArray();
         }
 
+        /// <summary>
+        /// 參考：[Using the AesGcm class](https://stackoverflow.com/questions/60889345/using-the-aesgcm-class)
+        /// </summary>
         public T DecryptData<T>(string key, byte[] cipherData, string associatedData = null)
         {
             // Decode
