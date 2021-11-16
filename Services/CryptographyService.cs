@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -96,6 +97,117 @@ namespace Net5ConaoleApp.Services
             }
         }
 
+        public byte[] EncryptData(string key, object data, string associatedData = null)
+        {
+            // Get bytes of plaintext string
+            byte[] plainBytes = JsonSerializer.SerializeToUtf8Bytes(data, data.GetType());
+
+            // Get parameter sizes
+            int nonceSize = AesGcm.NonceByteSizes.MaxSize;
+            int tagSize = AesGcm.TagByteSizes.MaxSize;
+            int cipherSize = plainBytes.Length;
+
+            // We write everything into one big array for easier encoding
+            int encryptedDataLength = 4 + nonceSize + 4 + tagSize + cipherSize;
+            Span<byte> encryptedData = encryptedDataLength < 1024
+                                     ? stackalloc byte[encryptedDataLength]
+                                     : new byte[encryptedDataLength].AsSpan();
+
+            // Copy parameters
+            BinaryPrimitives.WriteInt32LittleEndian(encryptedData.Slice(0, 4), nonceSize);
+            BinaryPrimitives.WriteInt32LittleEndian(encryptedData.Slice(4 + nonceSize, 4), tagSize);
+            var nonce = encryptedData.Slice(4, nonceSize);
+            var tag = encryptedData.Slice(4 + nonceSize + 4, tagSize);
+            var cipherBytes = encryptedData.Slice(4 + nonceSize + 4 + tagSize, cipherSize);
+
+            // Generate secure nonce
+            RandomNumberGenerator.Fill(nonce);
+
+            // key & associatedData 
+            byte[] ass = associatedData == null ? null : ASCIIEncoding.ASCII.GetBytes(associatedData);
+            using var shaer = SHA256.Create();
+            byte[] keyCode = shaer.ComputeHash(ASCIIEncoding.ASCII.GetBytes(key));
+
+            // Encrypt
+            using var aes = new AesGcm(keyCode);
+            aes.Encrypt(nonce, plainBytes.AsSpan(), cipherBytes, tag, ass);
+
+            // Encode for transmission
+            return encryptedData.ToArray();
+        }
+
+        public T DecryptData<T>(string key, byte[] cipherData, string associatedData = null)
+        {
+            // Decode
+            Span<byte> encryptedData = cipherData.AsSpan();
+
+            // Extract parameter sizes
+            int nonceSize = BinaryPrimitives.ReadInt32LittleEndian(encryptedData.Slice(0, 4));
+            int tagSize = BinaryPrimitives.ReadInt32LittleEndian(encryptedData.Slice(4 + nonceSize, 4));
+            int cipherSize = encryptedData.Length - 4 - nonceSize - 4 - tagSize;
+
+            // Extract parameters
+            var nonce = encryptedData.Slice(4, nonceSize);
+            var tag = encryptedData.Slice(4 + nonceSize + 4, tagSize);
+            var cipherBytes = encryptedData.Slice(4 + nonceSize + 4 + tagSize, cipherSize);
+
+            // key & associatedData 
+            byte[] ass = associatedData == null ? null : ASCIIEncoding.ASCII.GetBytes(associatedData);
+            using var shaer = SHA256.Create();
+            byte[] keyCode = shaer.ComputeHash(ASCIIEncoding.ASCII.GetBytes(key));
+
+            // Decrypt
+            Span<byte> plainBytes = cipherSize < 1024
+                                  ? stackalloc byte[cipherSize]
+                                  : new byte[cipherSize];
+
+            using var aes = new AesGcm(keyCode);
+            aes.Decrypt(nonce, cipherBytes, tag, plainBytes, ass);
+
+            // Convert plain bytes back into string
+            //return Encoding.UTF8.GetString(plainBytes);
+            T data = JsonSerializer.Deserialize<T>(plainBytes);
+            return data;
+        }
+
+        public ProtectedDataPackage ProtectData(string thumbprint, object data, string key, string associatedData = null)
+        {
+            byte[] signature = SignData(thumbprint, data);
+            byte[] cipherData = EncryptData(key, data, associatedData);
+
+            return new ProtectedDataPackage { 
+                signature = signature, 
+                cipherData = cipherData
+            };
+        }
+
+        public bool UnprotectData<T>(ProtectedDataPackage pkg, out T plainData, string thumbprint, string key, string associatedData = null)
+        {
+            plainData = default;
+
+            try
+            {                
+                T decryptData = DecryptData<T>(key, pkg.cipherData, associatedData);
+                if (VerifyData(thumbprint, decryptData, pkg.signature)) 
+                {
+                    plainData = decryptData;
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"UnprotectData FAIL! {ex.Message}");
+                return false;
+            }
+        }
+
+        public class ProtectedDataPackage
+        {
+            public byte[] signature;
+            public byte[] cipherData;
+        }
 
         static X509Certificate2 FindCertInStore(StoreName storeName, StoreLocation location, string thumbprint, bool validOnly = true)
         {
@@ -113,4 +225,6 @@ namespace Net5ConaoleApp.Services
             return null;
         }
     }
+
+    
 }

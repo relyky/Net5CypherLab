@@ -45,11 +45,19 @@ namespace Net5ConaoleApp
 
             string thumbprint = @"6CF5ACB9F5AF03741FF924A8542A0D108F453595";
 
-            var cryptoBlob = _cypher.EncryptDataOaepSha1(thumbprint, connList);
-            var dataBlob = _cypher.DecryptDataOaepSha1<Dictionary<string,string>>(thumbprint, cryptoBlob);
+            //var cryptoBlob = _cypher.EncryptDataOaepSha1(thumbprint, connList);
+            //var dataBlob = _cypher.DecryptDataOaepSha1<Dictionary<string,string>>(thumbprint, cryptoBlob);
 
             var signature = _cypher.SignData(thumbprint, connList);
             bool isValid = _cypher.VerifyData(thumbprint, connList, signature);
+
+            var cipherData = _cypher.EncryptData("show me the money", connList, "是的");
+            var plainData = _cypher.DecryptData<Dictionary<string, string>>("show me the money", cipherData, "是的");
+
+            var pkg = _cypher.ProtectData(thumbprint, connList, "show me the money");
+
+            Dictionary<string, string> result;
+            bool isOk = _cypher.UnprotectData<Dictionary<string, string>>(pkg, out result, thumbprint, "show me the money");
 
             Console.WriteLine("Press any key to continue.");
             Console.ReadKey();
