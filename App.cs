@@ -48,11 +48,11 @@ namespace Net5ConaoleApp
             //var cryptoBlob = _cypher.EncryptDataOaepSha1(thumbprint, connList);
             //var dataBlob = _cypher.DecryptDataOaepSha1<Dictionary<string,string>>(thumbprint, cryptoBlob);
 
-            var signature = _cypher.SignData(thumbprint, connList);
-            bool isValid = _cypher.VerifyData(thumbprint, connList, signature);
+            //var signature = _cypher.SignData(thumbprint, connList);
+            //bool isValid = _cypher.VerifyData(thumbprint, connList, signature);
 
-            var cipherData = _cypher.EncryptData("show me the money", connList, "是的");
-            var plainData = _cypher.DecryptData<Dictionary<string, string>>("show me the money", cipherData, "是的");
+            //var cipherData = _cypher.EncryptData("show me the money", connList, "是的");
+            //var plainData = _cypher.DecryptData<Dictionary<string, string>>("show me the money", cipherData, "是的");
 
             var pkg = _cypher.ProtectData(thumbprint, connList, "show me the money");
 

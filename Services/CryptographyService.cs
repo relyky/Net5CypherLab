@@ -170,25 +170,24 @@ namespace Net5ConaoleApp.Services
             return data;
         }
 
-        public ProtectedDataPackage ProtectData(string thumbprint, object data, string key, string associatedData = null)
+        public Span<byte> ProtectData(string thumbprint, object data, string key, string associatedData = null)
         {
             byte[] signature = SignData(thumbprint, data);
             byte[] cipherData = EncryptData(key, data, associatedData);
-
-            return new ProtectedDataPackage { 
-                signature = signature, 
-                cipherData = cipherData
-            };
+            return cipherData.Concat(signature).ToArray().AsSpan();
         }
 
-        public bool UnprotectData<T>(ProtectedDataPackage pkg, out T plainData, string thumbprint, string key, string associatedData = null)
+        public bool UnprotectData<T>(Span<byte> pkg, out T plainData, string thumbprint, string key, string associatedData = null)
         {
             plainData = default;
 
             try
-            {                
-                T decryptData = DecryptData<T>(key, pkg.cipherData, associatedData);
-                if (VerifyData(thumbprint, decryptData, pkg.signature)) 
+            {
+                byte[] cipherData = pkg.Slice(0, pkg.Length - 256).ToArray();
+                byte[] signature = pkg.Slice(pkg.Length - 256).ToArray();
+
+                T decryptData = DecryptData<T>(key, cipherData, associatedData);
+                if (VerifyData(thumbprint, decryptData, signature)) 
                 {
                     plainData = decryptData;
                     return true;
@@ -201,12 +200,6 @@ namespace Net5ConaoleApp.Services
                 _logger.LogError(ex, $"UnprotectData FAIL! {ex.Message}");
                 return false;
             }
-        }
-
-        public class ProtectedDataPackage
-        {
-            public byte[] signature;
-            public byte[] cipherData;
         }
 
         static X509Certificate2 FindCertInStore(StoreName storeName, StoreLocation location, string thumbprint, bool validOnly = true)
