@@ -42,7 +42,7 @@ namespace Net5ConaoleApp.Services
         }
 
         /// <summary>
-        /// 用公鑰加密
+        /// 用公鑰加密。似乎只能加密HASH也就是簽章，方向相反的簽章？尚不能理解OAEP的用途。
         /// </summary>
         public byte[] EncryptDataOaepSha1(string thumbprint, object data)
         {
@@ -57,7 +57,7 @@ namespace Net5ConaoleApp.Services
         }
 
         /// <summary>
-        /// 用私鑰解密
+        /// 用私鑰解密。似乎只能加密HASH也就是簽章，方向相反的簽章？尚不能理解OAEP的用途。
         /// </summary>
         public T DecryptDataOaepSha1<T>(string thumbprint, byte[] cryptoBlob)
         {

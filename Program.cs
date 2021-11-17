@@ -33,8 +33,6 @@ namespace Net5ConaoleApp
         static void ConfigureServices(HostBuilderContext context, IServiceCollection services) 
         {
             // 在此註冊 services 
-            services.AddScoped<Services.RandomService>();
-
             services.AddScoped<Services.CryptographyService>();
         }
     }
