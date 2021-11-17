@@ -224,12 +224,15 @@ namespace Net5ConaoleApp.Services
             return null;
         }
 
+
+        static Lazy<RNGCryptoServiceProvider> s_lazyRng = new Lazy<RNGCryptoServiceProvider>(() => new RNGCryptoServiceProvider());
+
         public byte[] GenRandomKey(int length, bool NonZero = false)
         {
-            using var rng = new RNGCryptoServiceProvider();
+            //using var rng = new RNGCryptoServiceProvider();
             byte[] key = new byte[length];
-            if (NonZero) rng.GetNonZeroBytes(key);
-            else rng.GetBytes(key);
+            if (NonZero) s_lazyRng.Value.GetNonZeroBytes(key);
+            else s_lazyRng.Value.GetBytes(key);
             return key;
         }
     }
