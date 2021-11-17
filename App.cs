@@ -48,6 +48,10 @@ namespace Net5ConaoleApp
             //var cryptoBlob = _cypher.EncryptDataOaepSha1(thumbprint, connList);
             //var dataBlob = _cypher.DecryptDataOaepSha1<Dictionary<string,string>>(thumbprint, cryptoBlob);
 
+            byte[] key32 = _cypher.GenRandomKey(64);
+            string key32B = Convert.ToBase64String(key32);
+            byte[] key32n = _cypher.GenRandomKey(64, true);
+
             var signature = _cypher.SignData(thumbprint, connList);
             bool isValid = _cypher.VerifyData(thumbprint, connList, signature);
 
@@ -59,8 +63,9 @@ namespace Net5ConaoleApp
             Dictionary<string, string> result;
             bool isOk = _cypher.UnprotectData<Dictionary<string, string>>(pkg, out result, thumbprint, "show me the money");
 
-            Console.WriteLine("Press any key to continue.");
-            Console.ReadKey();
+            System.Diagnostics.Debugger.Break();
+            //Console.WriteLine("Press any key to continue.");
+            //Console.ReadKey();            
         }
     }
 

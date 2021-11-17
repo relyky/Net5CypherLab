@@ -193,7 +193,7 @@ namespace Net5ConaoleApp.Services
                 byte[] signature = pkg.Slice(pkg.Length - 256).ToArray();
 
                 T decryptData = DecryptData<T>(key, cipherData, associatedData);
-                if (VerifyData(thumbprint, decryptData, signature)) 
+                if (VerifyData(thumbprint, decryptData, signature))
                 {
                     plainData = decryptData;
                     return true;
@@ -223,7 +223,14 @@ namespace Net5ConaoleApp.Services
             //throw new ApplicationException($@"找不到目標憑證[Subject = {subject}]！");
             return null;
         }
-    }
 
-    
+        public byte[] GenRandomKey(int length, bool NonZero = false)
+        {
+            using var rng = new RNGCryptoServiceProvider();
+            byte[] key = new byte[length];
+            if (NonZero) rng.GetNonZeroBytes(key);
+            else rng.GetBytes(key);
+            return key;
+        }
+    }
 }
